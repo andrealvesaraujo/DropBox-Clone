@@ -1,5 +1,7 @@
 class DropBoxController {
 
+    // cd app 
+    // node start
     constructor(){
         this.btnSendFileEl = document.querySelector("#btn-send-file");
         this.inputFilesEl = document.querySelector("#files");
@@ -39,7 +41,7 @@ class DropBoxController {
                 ajax.onload = event => {
 
                     try {
-
+                        
                         resolve(JSON.parse(ajax.responseText));
 
                     } catch (e) {
