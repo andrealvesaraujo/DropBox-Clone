@@ -156,9 +156,14 @@ class DropBoxController {
 
             this.uploadTask(event.target.files).then(responses =>{
 
-                responses.forEach(resp =>{
+                responses.forEach(resp =>{                    
 
-                    this.getFirebaseRef().push().set(resp.files['input-file']);
+                    this.getFirebaseRef().push().set({
+                        name: resp.name,
+                        type: resp.contentType,
+                        path: resp.customMetadata.downloadURL,
+                        size: resp.size
+                    });
                     
                 });
 
@@ -246,17 +251,43 @@ class DropBoxController {
 
         [...files].forEach(file=>{
             
-            let formData = new FormData();
+            promises.push(new Promise((resolve,reject)=>{               
 
-            formData.append('input-file', file);
+                let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name);
+                
+                let task = fileRef.put(file);
+                
+                task.on('state_changed', snapshot=> {
 
-            promises.push(this.ajax('/upload', 'POST', formData, ()=>{
+                    this.uploadProgress({
+                        loaded: snapshot.bytesTransferred,
+                        total: snapshot.totalBytes
+                    }, file);
+                    
+                }, error => {
+                    
+                    console.log(error);
+                    reject(error);
 
-                this.uploadProgress(event, file);
+                }, () => {
 
-            },()=> {
+                    task.snapshot.ref.getDownloadURL().then( downloadURL => {
+ 
+                        task.snapshot.ref.updateMetadata({ customMetadata: { downloadURL }}).then( metadata => {
+                    
+                         resolve( metadata )
+                    
+                       }).catch( error => {
+                    
+                         console.error( 'Error update metadata:', error)
+                         reject( error ) 
 
-                this.startUploadTime = Date.now();
+                       });
+
+                    });   
+
+                });                
+
             }));
 
         });
